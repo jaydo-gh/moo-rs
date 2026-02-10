@@ -1,12 +1,16 @@
 use std::marker::PhantomData;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 
 use ndarray::{Axis, concatenate};
 
 use crate::{
-    algorithms::helpers::{AlgorithmContext, AlgorithmError, initialization::Initialization},
+    algorithms::helpers::{initialization::Initialization, AlgorithmContext, AlgorithmError},
     duplicates::PopulationCleaner,
     evaluator::{ConstraintsFn, Evaluator, FitnessFn},
-    genetic::Population,
+    genetic::{D12, Population},
     helpers::printer::algorithm_printer,
     operators::{
         CrossoverOperator, Evolve, EvolveError, MutationOperator, SamplingOperator,
@@ -14,6 +18,15 @@ use crate::{
     },
     random::MOORandomGenerator,
 };
+
+pub struct IterationData<'a, FDim, GDim>
+where
+    FDim: D12,
+    GDim: D12,
+{
+    pub iteration: usize,
+    pub population: &'a Population<FDim, GDim>,
+}
 
 #[derive(Debug)]
 pub struct GeneticAlgorithm<S, Sel, Sur, Cross, Mut, F, G, DC>
@@ -108,6 +121,20 @@ where
     }
 
     pub fn run(&mut self) -> Result<(), AlgorithmError> {
+        self.run_cancellable::<fn(IterationData<F::Dim, G::Dim>)>(
+            Arc::new(AtomicBool::new(false)),
+            None,
+        )
+    }
+
+    pub fn run_cancellable<C>(
+        &mut self,
+        token: Arc<AtomicBool>,
+        mut callback: Option<C>,
+    ) -> Result<(), AlgorithmError>
+    where
+        C: FnMut(IterationData<F::Dim, G::Dim>),
+    {
         // Create the first Population
         let initial_population = Initialization::initialize(
             &self.sampler,
@@ -121,6 +148,13 @@ where
         self.population = Some(initial_population);
 
         for current_iter in 0..self.context.num_iterations {
+            if token.load(Ordering::Relaxed) {
+                if self.verbose {
+                    println!("Algorithm cancelled at iteration {}", current_iter);
+                }
+                break;
+            }
+
             match self.next() {
                 Ok(()) => {
                     if self.verbose {
@@ -128,6 +162,13 @@ where
                             &self.population.as_ref().unwrap().fitness,
                             current_iter + 1,
                         )
+                    }
+                    if let Some(cb) = &mut callback {
+                        let data = IterationData {
+                            iteration: current_iter + 1,
+                            population: self.population.as_ref().unwrap(),
+                        };
+                        cb(data);
                     }
                 }
                 Err(AlgorithmError::Evolve(err @ EvolveError::EmptyMatingResult)) => {

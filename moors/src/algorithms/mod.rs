@@ -6,7 +6,7 @@ mod moo;
 mod soo;
 
 pub use builder::{AlgorithmBuilder, AlgorithmBuilderError};
-pub use ga::GeneticAlgorithm;
+pub use ga::{GeneticAlgorithm, IterationData};
 pub use moo::agemoea::{AgeMoea, AgeMoeaBuilder};
 pub use moo::ibea::{Ibea, IbeaBuilder};
 pub use moo::nsga2::{Nsga2, Nsga2Builder};
