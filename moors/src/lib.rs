@@ -101,8 +101,8 @@ mod private;
 pub mod random;
 pub use algorithms::{
     AgeMoea, AgeMoeaBuilder, AlgorithmBuilder, AlgorithmBuilderError, AlgorithmError,
-    GeneticAlgorithm, Ibea, IbeaBuilder, InitializationError, Nsga2, Nsga2Builder, Nsga3,
-    Nsga3Builder, Revea, ReveaBuilder, Rnsga2, Rnsga2Builder, Spea2, Spea2Builder,
+    GeneticAlgorithm, Ibea, IbeaBuilder, InitializationError, IterationData, Nsga2, Nsga2Builder,
+    Nsga3, Nsga3Builder, Revea, ReveaBuilder, Rnsga2, Rnsga2Builder, Spea2, Spea2Builder,
 };
 pub use duplicates::{
     CloseDuplicatesCleaner, ExactDuplicatesCleaner, NoDuplicatesCleaner, PopulationCleaner,
